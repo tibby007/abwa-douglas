@@ -23,8 +23,12 @@ export default function LoginPage() {
   const [success, setSuccess] = useState('');
   const [takenPositions, setTakenPositions] = useState<string[]>([]);
 
-  // Fetch taken officer positions on mount
+  // Fetch taken officer positions only when in signup mode
   useEffect(() => {
+    if (mode !== 'signup') {
+      return;
+    }
+
     const fetchTakenPositions = async () => {
       try {
         const { data, error } = await supabase
@@ -33,6 +37,7 @@ export default function LoginPage() {
           .in('role', ['treasurer', 'president', 'vice_president', 'secretary']);
 
         if (error) {
+          // Silently fail - validation will still happen on submit
           console.error('Error fetching taken positions:', error);
           return;
         }
@@ -41,12 +46,13 @@ export default function LoginPage() {
           setTakenPositions(data.map(p => p.role));
         }
       } catch (err) {
+        // Silently fail - validation will still happen on submit
         console.error('Error fetching taken positions:', err);
       }
     };
 
     fetchTakenPositions();
-  }, []);
+  }, [mode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
