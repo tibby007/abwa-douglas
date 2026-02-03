@@ -270,9 +270,8 @@ export default function Home() {
 
   const handleNewTransaction = async (transaction: Transaction) => {
     try {
-      // Save to Supabase
-      const { error } = await supabase.from('transactions').insert({
-        id: transaction.id,
+      // Save to Supabase - let database generate UUID
+      const { data, error } = await supabase.from('transactions').insert({
         date: transaction.date,
         merchant: transaction.merchant,
         description: transaction.description,
@@ -283,7 +282,7 @@ export default function Home() {
         payment_source: transaction.paymentSource,
         submitted_by: transaction.submittedBy,
         submitted_by_user_id: user?.id
-      });
+      }).select().single();
 
       if (error) {
         console.error('Error saving transaction:', error);
@@ -291,8 +290,22 @@ export default function Home() {
         return;
       }
 
-      // Update local state
-      setTransactions(prev => [transaction, ...prev]);
+      // Update local state with the transaction that has the database-generated UUID
+      if (data) {
+        const savedTransaction: Transaction = {
+          id: data.id,
+          date: data.date,
+          amount: parseFloat(data.amount),
+          merchant: data.merchant,
+          category: data.category,
+          description: data.description || '',
+          type: data.type,
+          status: data.status,
+          submittedBy: data.submitted_by,
+          paymentSource: data.payment_source
+        };
+        setTransactions(prev => [savedTransaction, ...prev]);
+      }
       setCurrentView('dashboard');
     } catch (err) {
       console.error('Error creating transaction:', err);
@@ -302,10 +315,9 @@ export default function Home() {
 
   const handleImportTransactions = async (newTxs: Transaction[]) => {
     try {
-      // Save to Supabase
-      const { error } = await supabase.from('transactions').insert(
+      // Save to Supabase - let database generate UUIDs
+      const { data, error } = await supabase.from('transactions').insert(
         newTxs.map(tx => ({
-          id: tx.id,
           date: tx.date,
           merchant: tx.merchant,
           description: tx.description,
@@ -317,7 +329,7 @@ export default function Home() {
           submitted_by: tx.submittedBy,
           is_from_import: true
         }))
-      );
+      ).select();
 
       if (error) {
         console.error('Error importing transactions:', error);
@@ -325,8 +337,22 @@ export default function Home() {
         return;
       }
 
-      // Update local state
-      setTransactions(prev => [...newTxs, ...prev]);
+      // Update local state with transactions that have database-generated UUIDs
+      if (data) {
+        const savedTransactions: Transaction[] = data.map(tx => ({
+          id: tx.id,
+          date: tx.date,
+          amount: parseFloat(tx.amount),
+          merchant: tx.merchant,
+          category: tx.category,
+          description: tx.description || '',
+          type: tx.type,
+          status: tx.status,
+          submittedBy: tx.submitted_by,
+          paymentSource: tx.payment_source
+        }));
+        setTransactions(prev => [...savedTransactions, ...prev]);
+      }
     } catch (err) {
       console.error('Error importing transactions:', err);
       alert('Failed to import transactions. Please try again.');
