@@ -34,9 +34,22 @@ export interface Transaction {
   status: TransactionStatus;
   submittedBy: string;
   paymentSource?: PaymentSource;
+  committeeId?: string;
+  committeeName?: string;
 }
 
-export type ViewState = 'dashboard' | 'request' | 'history';
+export interface Committee {
+  id: string;
+  name: string;
+  annualBudget: number;
+  description?: string;
+  chairName?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ViewState = 'dashboard' | 'request' | 'history' | 'budgets';
 
 // Expense categories
 export const EXPENSE_CATEGORIES = [

@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Menu, LogOut } from 'lucide-react';
-import { Sidebar, Dashboard, RequestForm, TransactionHistory } from '@/components';
-import { Transaction, TransactionStatus, ViewState } from '@/types';
+import { Sidebar, Dashboard, RequestForm, TransactionHistory, BudgetManager } from '@/components';
+import { Transaction, TransactionStatus, ViewState, Committee } from '@/types';
 import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
 
@@ -132,6 +132,7 @@ export default function Home() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [balance, setBalance] = useState<number>(1174.95);
   const [transactions, setTransactions] = useState<Transaction[]>(INITIAL_DATA);
+  const [committees, setCommittees] = useState<Committee[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
   // Redirect to login if not authenticated
@@ -174,7 +175,8 @@ export default function Home() {
             type: tx.type,
             status: tx.status,
             submittedBy: tx.submitted_by,
-            paymentSource: tx.payment_source
+            paymentSource: tx.payment_source,
+            committeeId: tx.committee_id
           }));
           setTransactions(mappedTransactions);
         }
@@ -191,6 +193,27 @@ export default function Home() {
           if (typeof balanceAmount === 'number') {
             setBalance(balanceAmount);
           }
+        }
+
+        // Load committees
+        const { data: committeeData, error: committeeError } = await supabase
+          .from('committees')
+          .select('*')
+          .eq('is_active', true)
+          .order('name');
+
+        if (!committeeError && committeeData) {
+          const mappedCommittees: Committee[] = committeeData.map(c => ({
+            id: c.id,
+            name: c.name,
+            annualBudget: parseFloat(c.annual_budget) || 0,
+            description: c.description,
+            chairName: c.chair_name,
+            isActive: c.is_active,
+            createdAt: c.created_at,
+            updatedAt: c.updated_at
+          }));
+          setCommittees(mappedCommittees);
         }
       } catch (e) {
         console.error('Failed to load data from Supabase:', e);
@@ -281,7 +304,8 @@ export default function Home() {
         status: transaction.status,
         payment_source: transaction.paymentSource,
         submitted_by: transaction.submittedBy,
-        submitted_by_user_id: user?.id
+        submitted_by_user_id: user?.id,
+        committee_id: transaction.committeeId || null
       }).select().single();
 
       if (error) {
@@ -302,7 +326,9 @@ export default function Home() {
           type: data.type,
           status: data.status,
           submittedBy: data.submitted_by,
-          paymentSource: data.payment_source
+          paymentSource: data.payment_source,
+          committeeId: data.committee_id,
+          committeeName: transaction.committeeName
         };
         setTransactions(prev => [savedTransaction, ...prev]);
       }
@@ -426,6 +452,85 @@ export default function Home() {
     await updateBalanceInSupabase(newBalance);
   };
 
+  // Committee management functions
+  const handleAddCommittee = async (committee: Omit<Committee, 'id' | 'createdAt' | 'updatedAt'>) => {
+    try {
+      const { data, error } = await supabase.from('committees').insert({
+        name: committee.name,
+        annual_budget: committee.annualBudget,
+        description: committee.description,
+        chair_name: committee.chairName,
+        is_active: committee.isActive
+      }).select().single();
+
+      if (error) {
+        console.error('Error adding committee:', error);
+        alert('Failed to add committee. Please try again.');
+        return;
+      }
+
+      if (data) {
+        const newCommittee: Committee = {
+          id: data.id,
+          name: data.name,
+          annualBudget: parseFloat(data.annual_budget) || 0,
+          description: data.description,
+          chairName: data.chair_name,
+          isActive: data.is_active,
+          createdAt: data.created_at,
+          updatedAt: data.updated_at
+        };
+        setCommittees(prev => [...prev, newCommittee].sort((a, b) => a.name.localeCompare(b.name)));
+      }
+    } catch (err) {
+      console.error('Error adding committee:', err);
+      alert('Failed to add committee. Please try again.');
+    }
+  };
+
+  const handleUpdateCommittee = async (id: string, updates: Partial<Committee>) => {
+    try {
+      const { error } = await supabase.from('committees').update({
+        name: updates.name,
+        annual_budget: updates.annualBudget,
+        description: updates.description,
+        chair_name: updates.chairName,
+        is_active: updates.isActive,
+        updated_at: new Date().toISOString()
+      }).eq('id', id);
+
+      if (error) {
+        console.error('Error updating committee:', error);
+        alert('Failed to update committee. Please try again.');
+        return;
+      }
+
+      setCommittees(prev => prev.map(c =>
+        c.id === id ? { ...c, ...updates, updatedAt: new Date().toISOString() } : c
+      ).sort((a, b) => a.name.localeCompare(b.name)));
+    } catch (err) {
+      console.error('Error updating committee:', err);
+      alert('Failed to update committee. Please try again.');
+    }
+  };
+
+  const handleDeleteCommittee = async (id: string) => {
+    try {
+      const { error } = await supabase.from('committees').delete().eq('id', id);
+
+      if (error) {
+        console.error('Error deleting committee:', error);
+        alert('Failed to delete committee. Please try again.');
+        return;
+      }
+
+      setCommittees(prev => prev.filter(c => c.id !== id));
+    } catch (err) {
+      console.error('Error deleting committee:', err);
+      alert('Failed to delete committee. Please try again.');
+    }
+  };
+
   const handleViewChange = (view: ViewState) => {
     setCurrentView(view);
     setIsMobileMenuOpen(false);
@@ -503,6 +608,18 @@ export default function Home() {
               onCancel={() => handleViewChange('dashboard')}
               userName={profile?.full_name || profile?.email || 'Unknown'}
               isTreasurer={isTreasurer}
+              committees={committees}
+            />
+          )}
+
+          {currentView === 'budgets' && (
+            <BudgetManager
+              committees={committees}
+              transactions={transactions}
+              isTreasurer={isTreasurer}
+              onAddCommittee={handleAddCommittee}
+              onUpdateCommittee={handleUpdateCommittee}
+              onDeleteCommittee={handleDeleteCommittee}
             />
           )}
 

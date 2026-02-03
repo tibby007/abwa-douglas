@@ -1,17 +1,18 @@
 'use client';
 
 import { useState } from 'react';
-import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, PAYMENT_SOURCES, Transaction, TransactionStatus, TransactionType, PaymentSource } from '@/types';
-import { DollarSign, Calendar, Tag, FileText, CreditCard } from 'lucide-react';
+import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, PAYMENT_SOURCES, Transaction, TransactionStatus, TransactionType, PaymentSource, Committee } from '@/types';
+import { DollarSign, Calendar, Tag, FileText, CreditCard, Users } from 'lucide-react';
 
 interface RequestFormProps {
   onSubmit: (transaction: Transaction) => void;
   onCancel: () => void;
   userName: string;
   isTreasurer: boolean;
+  committees?: Committee[];
 }
 
-export function RequestForm({ onSubmit, onCancel, userName, isTreasurer }: RequestFormProps) {
+export function RequestForm({ onSubmit, onCancel, userName, isTreasurer, committees = [] }: RequestFormProps) {
   const [formData, setFormData] = useState({
     amount: '',
     merchant: '',
@@ -20,7 +21,8 @@ export function RequestForm({ onSubmit, onCancel, userName, isTreasurer }: Reque
     description: '',
     type: 'REIMBURSEMENT' as TransactionType,
     submittedBy: userName,
-    paymentSource: 'Other' as PaymentSource
+    paymentSource: 'Other' as PaymentSource,
+    committeeId: ''
   });
 
   // Get appropriate categories based on transaction type
@@ -42,6 +44,7 @@ export function RequestForm({ onSubmit, onCancel, userName, isTreasurer }: Reque
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const selectedCommittee = committees.find(c => c.id === formData.committeeId);
     const newTransaction: Transaction = {
       id: `tx-${Date.now()}`,
       amount: parseFloat(formData.amount),
@@ -52,7 +55,9 @@ export function RequestForm({ onSubmit, onCancel, userName, isTreasurer }: Reque
       type: formData.type,
       status: TransactionStatus.PENDING,
       submittedBy: formData.submittedBy,
-      paymentSource: formData.paymentSource
+      paymentSource: formData.paymentSource,
+      committeeId: formData.committeeId || undefined,
+      committeeName: selectedCommittee?.name
     };
     onSubmit(newTransaction);
   };
@@ -159,6 +164,30 @@ export function RequestForm({ onSubmit, onCancel, userName, isTreasurer }: Reque
                 {formData.type === 'INCOME' ? 'How payment was received' : 'How payment was made'}
               </p>
             </div>
+
+            {/* Committee Selection - only show for expenses/reimbursements and if committees exist */}
+            {committees.length > 0 && formData.type !== 'INCOME' && (
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-slate-700">Committee (Optional)</label>
+                <div className="relative">
+                  <Users className="absolute left-3 top-2.5 text-slate-400" size={16} />
+                  <select
+                    name="committeeId"
+                    value={formData.committeeId}
+                    onChange={handleInputChange}
+                    className="w-full rounded-lg border border-slate-300 pl-9 pr-3 py-2 text-sm focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500"
+                  >
+                    <option value="">No committee (General)</option>
+                    {committees.map(committee => (
+                      <option key={committee.id} value={committee.id}>{committee.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <p className="mt-1 text-xs text-slate-500">
+                  Assign this expense to a committee budget
+                </p>
+              </div>
+            )}
 
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">Payee / Merchant</label>

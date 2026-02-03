@@ -1,6 +1,6 @@
 'use client';
 
-import { LayoutDashboard, PlusCircle, History, LogOut } from 'lucide-react';
+import { LayoutDashboard, PlusCircle, History, LogOut, PieChart } from 'lucide-react';
 import { ViewState } from '@/types';
 import { UserProfile } from '@/lib/auth-context';
 
@@ -64,6 +64,14 @@ export function Sidebar({ currentView, onChangeView, pendingCount, profile, isTr
         >
           <PlusCircle size={20} />
           <span>Record Transaction</span>
+        </button>
+
+        <button
+          onClick={() => onChangeView('budgets')}
+          className={navItemClass('budgets')}
+        >
+          <PieChart size={20} />
+          <span>Committee Budgets</span>
         </button>
 
         {/* History & Import - Treasurer only */}
