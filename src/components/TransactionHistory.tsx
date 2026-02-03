@@ -11,6 +11,7 @@ interface HistoryProps {
   onImport?: (transactions: Transaction[]) => void;
   onUpdateBalance?: (balance: number) => void;
   onClearData?: () => void;
+  onReconcile?: (transactionIds: string[]) => void;
 }
 
 function getMonthOptions(transactions: Transaction[]): { value: string; label: string }[] {
@@ -85,7 +86,7 @@ function extractMerchantName(description: string): string {
   return cleanDesc.replace(/^(DEBIT|CREDIT|ACH|PREAUTHORIZED|WD)\s+/i, '').trim() || 'Bank Transaction';
 }
 
-export function TransactionHistory({ transactions, balance, onImport, onUpdateBalance, onClearData }: HistoryProps) {
+export function TransactionHistory({ transactions, balance, onImport, onUpdateBalance, onClearData, onReconcile }: HistoryProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -217,21 +218,50 @@ export function TransactionHistory({ transactions, balance, onImport, onUpdateBa
           const existingKeys = new Set(
             transactions.map(tx => `${tx.date}|${tx.amount}|${tx.description}`)
           );
-          const uniqueTransactions = newTransactions.filter(tx => {
-            const key = `${tx.date}|${tx.amount}|${tx.description}`;
-            return !existingKeys.has(key);
+
+          // Find outstanding (PENDING) transactions that match bank imports by amount
+          const outstandingTxs = transactions.filter(tx => tx.status === TransactionStatus.PENDING);
+          const reconciledIds: string[] = [];
+
+          const uniqueTransactions = newTransactions.filter(bankTx => {
+            // Check exact duplicate first
+            const key = `${bankTx.date}|${bankTx.amount}|${bankTx.description}`;
+            if (existingKeys.has(key)) return false;
+
+            // Check if this matches an outstanding transaction (by amount and type)
+            const matchingOutstanding = outstandingTxs.find(outTx =>
+              Math.abs(outTx.amount - bankTx.amount) < 0.01 &&
+              outTx.type === bankTx.type &&
+              !reconciledIds.includes(outTx.id)
+            );
+
+            if (matchingOutstanding) {
+              reconciledIds.push(matchingOutstanding.id);
+              return false; // Don't import, we'll reconcile instead
+            }
+
+            return true;
           });
+
+          // Auto-reconcile matching outstanding transactions
+          if (reconciledIds.length > 0 && onReconcile) {
+            onReconcile(reconciledIds);
+          }
 
           if (uniqueTransactions.length > 0) {
             onImport(uniqueTransactions);
-            if (latestBalance !== -1 && onUpdateBalance) onUpdateBalance(latestBalance);
-            setImportError(null);
-            const skipped = newTransactions.length - uniqueTransactions.length;
-            const skippedMsg = skipped > 0 ? ` (${skipped} duplicates skipped)` : '';
-            alert(`Successfully imported ${uniqueTransactions.length} transactions${skippedMsg}.${latestBalance !== -1 ? ' Balance updated.' : ''}`);
-          } else {
-            setImportError("All transactions in this file already exist.");
           }
+
+          if (latestBalance !== -1 && onUpdateBalance) onUpdateBalance(latestBalance);
+          setImportError(null);
+
+          const skipped = newTransactions.length - uniqueTransactions.length - reconciledIds.length;
+          let msg = `Imported ${uniqueTransactions.length} new transactions.`;
+          if (reconciledIds.length > 0) msg += ` Reconciled ${reconciledIds.length} outstanding.`;
+          if (skipped > 0) msg += ` (${skipped} duplicates skipped)`;
+          if (latestBalance !== -1) msg += ' Balance updated.';
+
+          alert(msg);
           if (fileInputRef.current) fileInputRef.current.value = '';
         } else {
           setImportError("No valid transactions found.");

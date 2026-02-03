@@ -125,7 +125,7 @@ export function Dashboard({ transactions, balance, onUpdateBalance, onProcess, o
             onClick={() => onNavigate('request')}
             className="inline-flex items-center justify-center rounded-lg bg-rose-700 px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-rose-800 focus:outline-none focus:ring-4 focus:ring-rose-300"
           >
-            + Submit Transaction
+            + Record Transaction
           </button>
         </div>
       </div>
@@ -238,23 +238,24 @@ export function Dashboard({ transactions, balance, onUpdateBalance, onProcess, o
       )}
 
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Pending Approvals */}
+        {/* Outstanding Transactions */}
         <div className="flex flex-col rounded-xl border border-slate-200 bg-white shadow-sm">
           <div className="border-b border-slate-100 p-6">
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-slate-900">Pending Approvals</h3>
+              <h3 className="font-semibold text-slate-900">Outstanding Transactions</h3>
               {pendingTransactions.length > 0 && (
                 <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800">
-                  {pendingTransactions.length} Needs Action
+                  {pendingTransactions.length} Uncleared
                 </span>
               )}
             </div>
+            <p className="text-xs text-slate-500 mt-1">Checks written, payments sent - not yet on bank statement</p>
           </div>
           <div className="flex-1 overflow-y-auto p-6">
             {pendingTransactions.length === 0 ? (
               <div className="flex h-40 flex-col items-center justify-center text-slate-400">
                 <CheckCircle size={40} className="mb-2 opacity-50" />
-                <p>All caught up! No pending requests.</p>
+                <p>No outstanding transactions.</p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -284,14 +285,14 @@ export function Dashboard({ transactions, balance, onUpdateBalance, onProcess, o
                           <button
                             onClick={() => onProcess(tx.id, TransactionStatus.REJECTED)}
                             className="rounded p-1.5 text-red-600 hover:bg-red-100"
-                            title="Reject"
+                            title="Void Transaction"
                           >
                             <XCircle size={20} />
                           </button>
                           <button
                             onClick={() => onProcess(tx.id, TransactionStatus.APPROVED)}
                             className="rounded p-1.5 text-emerald-600 hover:bg-emerald-100"
-                            title="Approve"
+                            title="Mark as Cleared"
                           >
                             <CheckCircle size={20} />
                           </button>

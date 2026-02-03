@@ -51,7 +51,7 @@ export function Sidebar({ currentView, onChangeView, pendingCount }: SidebarProp
           className={navItemClass('request')}
         >
           <PlusCircle size={20} />
-          <span>New Request</span>
+          <span>Record Transaction</span>
         </button>
 
         <button

@@ -182,6 +182,15 @@ export default function Home() {
     localStorage.removeItem(STORAGE_KEY);
   };
 
+  // Auto-reconcile outstanding transactions when bank import matches
+  const handleReconcile = (transactionIds: string[]) => {
+    setTransactions(prev => prev.map(tx =>
+      transactionIds.includes(tx.id)
+        ? { ...tx, status: TransactionStatus.APPROVED }
+        : tx
+    ));
+  };
+
   const handleViewChange = (view: ViewState) => {
     setCurrentView(view);
     setIsMobileMenuOpen(false);
@@ -235,6 +244,7 @@ export default function Home() {
               onImport={handleImportTransactions}
               onUpdateBalance={setBalance}
               onClearData={handleClearData}
+              onReconcile={handleReconcile}
             />
           )}
         </div>
