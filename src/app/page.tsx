@@ -200,6 +200,7 @@ export default function Home() {
           {currentView === 'history' && (
             <TransactionHistory
               transactions={transactions}
+              balance={balance}
               onImport={handleImportTransactions}
               onUpdateBalance={setBalance}
             />

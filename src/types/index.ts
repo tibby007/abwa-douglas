@@ -6,6 +6,23 @@ export enum TransactionStatus {
 
 export type TransactionType = 'EXPENSE' | 'INCOME' | 'REIMBURSEMENT';
 
+// Payment sources/methods
+export const PAYMENT_SOURCES = [
+  'Wix Payments',
+  'Zelle',
+  'CashApp',
+  'PayPal',
+  'Venmo',
+  'Check',
+  'Cash',
+  'Bank Transfer',
+  'Credit Card',
+  'Debit Card',
+  'Other'
+] as const;
+
+export type PaymentSource = typeof PAYMENT_SOURCES[number];
+
 export interface Transaction {
   id: string;
   date: string;
@@ -16,23 +33,52 @@ export interface Transaction {
   type: TransactionType;
   status: TransactionStatus;
   submittedBy: string;
+  paymentSource?: PaymentSource;
 }
 
 export type ViewState = 'dashboard' | 'request' | 'history';
 
-export const CATEGORIES = [
+// Expense categories
+export const EXPENSE_CATEGORIES = [
   'Meeting Expenses',
   'Operations',
-  'Membership Dues',
-  'Fundraising',
+  'Marketing & Promotions',
   'Speaker Gifts',
   'Travel/Conferences',
-  'Scholarships',
-  'Transfer',
+  'Scholarships & Awards',
+  'Supplies & Materials',
+  'Venue Rental',
+  'Catering & Food',
   'Electronics & Software',
-  'Fees & Charges',
-  'Business Services',
-  'Groceries',
-  'Shopping',
-  'Misc'
+  'Subscriptions',
+  'Printing & Stationery',
+  'Bank Fees',
+  'Processing Fees',
+  'Insurance',
+  'Donations Given',
+  'Refunds Issued',
+  'Misc Expense'
+] as const;
+
+// Income categories
+export const INCOME_CATEGORIES = [
+  'Membership Dues',
+  'Event Registration',
+  'Sponsorship',
+  'Donations Received',
+  'Fundraising',
+  'Merchandise Sales',
+  'Workshop Fees',
+  'Advertising Revenue',
+  'Interest Income',
+  'Refunds Received',
+  'Misc Income'
+] as const;
+
+// Combined for backwards compatibility
+export const CATEGORIES = [
+  ...EXPENSE_CATEGORIES,
+  ...INCOME_CATEGORIES,
+  'Transfer',
+  'Uncategorized'
 ] as const;

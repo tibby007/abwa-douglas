@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { CATEGORIES, Transaction, TransactionStatus, TransactionType } from '@/types';
-import { DollarSign, Calendar, Tag, FileText } from 'lucide-react';
+import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, PAYMENT_SOURCES, Transaction, TransactionStatus, TransactionType, PaymentSource } from '@/types';
+import { DollarSign, Calendar, Tag, FileText, CreditCard } from 'lucide-react';
 
 interface RequestFormProps {
   onSubmit: (transaction: Transaction) => void;
@@ -14,15 +14,28 @@ export function RequestForm({ onSubmit, onCancel }: RequestFormProps) {
     amount: '',
     merchant: '',
     date: new Date().toISOString().split('T')[0],
-    category: CATEGORIES[0],
+    category: EXPENSE_CATEGORIES[0] as string,
     description: '',
     type: 'REIMBURSEMENT' as TransactionType,
-    submittedBy: 'President'
+    submittedBy: 'President',
+    paymentSource: 'Other' as PaymentSource
   });
+
+  // Get appropriate categories based on transaction type
+  const currentCategories = formData.type === 'INCOME' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    if (name === 'type') {
+      // Reset category when type changes to ensure valid category
+      const newType = value as TransactionType;
+      const newCategories = newType === 'INCOME' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+      setFormData(prev => ({ ...prev, type: newType, category: newCategories[0] as string }));
+    } else if (name === 'paymentSource') {
+      setFormData(prev => ({ ...prev, paymentSource: value as PaymentSource }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -36,7 +49,8 @@ export function RequestForm({ onSubmit, onCancel }: RequestFormProps) {
       description: formData.description,
       type: formData.type,
       status: TransactionStatus.PENDING,
-      submittedBy: formData.submittedBy
+      submittedBy: formData.submittedBy,
+      paymentSource: formData.paymentSource
     };
     onSubmit(newTransaction);
   };
@@ -111,12 +125,32 @@ export function RequestForm({ onSubmit, onCancel }: RequestFormProps) {
                     onChange={handleInputChange}
                     className="w-full rounded-lg border border-slate-300 pl-9 pr-3 py-2 text-sm focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500"
                   >
-                    {CATEGORIES.map(cat => (
+                    {currentCategories.map(cat => (
                       <option key={cat} value={cat}>{cat}</option>
                     ))}
                   </select>
                 </div>
               </div>
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">Payment Method / Source</label>
+              <div className="relative">
+                <CreditCard className="absolute left-3 top-2.5 text-slate-400" size={16} />
+                <select
+                  name="paymentSource"
+                  value={formData.paymentSource}
+                  onChange={handleInputChange}
+                  className="w-full rounded-lg border border-slate-300 pl-9 pr-3 py-2 text-sm focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500"
+                >
+                  {PAYMENT_SOURCES.map(source => (
+                    <option key={source} value={source}>{source}</option>
+                  ))}
+                </select>
+              </div>
+              <p className="mt-1 text-xs text-slate-500">
+                {formData.type === 'INCOME' ? 'How payment was received' : 'How payment was made'}
+              </p>
             </div>
 
             <div>
