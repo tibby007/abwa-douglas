@@ -76,46 +76,7 @@ export function MonthlyReport({ transactions, monthLabel, balance, onClose }: Mo
   };
 
   return (
-    <>
-      {/* Print-specific styles */}
-      <style jsx global>{`
-        @media print {
-          @page {
-            size: letter;
-            margin: 0.75in;
-          }
-          body {
-            print-color-adjust: exact;
-            -webkit-print-color-adjust: exact;
-          }
-          /* Prevent page breaks inside category sections */
-          .category-section {
-            break-inside: avoid;
-            page-break-inside: avoid;
-          }
-          /* Allow page breaks before category sections if needed */
-          .category-section {
-            break-before: auto;
-            page-break-before: auto;
-          }
-          /* Prevent page breaks inside transaction rows */
-          table tr {
-            break-inside: avoid;
-            page-break-inside: avoid;
-          }
-          /* Keep summary box together */
-          .summary-box {
-            break-inside: avoid;
-            page-break-inside: avoid;
-          }
-          /* Keep payment source sections together */
-          .payment-source-box {
-            break-inside: avoid;
-            page-break-inside: avoid;
-          }
-        }
-      `}</style>
-      <div className="fixed inset-0 z-50 overflow-auto bg-black/50 print:bg-white print:static">
+    <div className="fixed inset-0 z-50 overflow-auto bg-black/50 print:bg-white print:static">
         <div className="min-h-screen bg-white p-8 max-w-4xl mx-auto print:p-0 print:max-w-none">
         {/* Print/Close buttons - hidden when printing */}
         <div className="flex justify-end gap-2 mb-6 print:hidden">
@@ -275,6 +236,5 @@ export function MonthlyReport({ transactions, monthLabel, balance, onClose }: Mo
         </div>
       </div>
     </div>
-    </>
   );
 }

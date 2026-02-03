@@ -7,3 +7,46 @@
 body {
   font-family: 'Inter', system-ui, sans-serif;
 }
+
+/* Print styles for monthly reports */
+@media print {
+  @page {
+    size: letter;
+    margin: 0.75in;
+  }
+
+  body {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  /* Prevent page breaks inside category sections */
+  .category-section {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Allow page breaks before category sections if needed */
+  .category-section {
+    break-before: auto;
+    page-break-before: auto;
+  }
+
+  /* Prevent page breaks inside transaction rows */
+  table tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Keep summary box together */
+  .summary-box {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Keep payment source sections together */
+  .payment-source-box {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
