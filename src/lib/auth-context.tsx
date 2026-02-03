@@ -24,6 +24,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   isTreasurer: boolean;
   isOfficer: boolean;
+  checkPositionAvailability: (role: UserRole) => Promise<{ available: boolean; takenBy?: string }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -113,6 +114,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isTreasurer = profile?.role === 'treasurer';
   const isOfficer = ['treasurer', 'president', 'vice_president', 'secretary'].includes(profile?.role || '');
 
+  // Helper to check if position is already taken
+  const checkPositionAvailability = async (role: UserRole): Promise<{ available: boolean; takenBy?: string }> => {
+    // Members can always register
+    if (role === 'member') {
+      return { available: true };
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('role', role)
+        .single();
+
+      // PGRST116 = no rows found (position available)
+      if (error?.code === 'PGRST116') {
+        return { available: true };
+      }
+
+      if (error) {
+        console.error('Error checking position:', error);
+        throw error;
+      }
+
+      // Position is taken
+      return { available: false, takenBy: data?.full_name };
+    } catch (err) {
+      console.error('Error checking position availability:', err);
+      throw err;
+    }
+  };
+
   return (
     <AuthContext.Provider value={{
       user,
@@ -123,7 +156,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signUp,
       signOut,
       isTreasurer,
-      isOfficer
+      isOfficer,
+      checkPositionAvailability
     }}>
       {children}
     </AuthContext.Provider>

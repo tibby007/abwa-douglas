@@ -1,15 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth, UserRole } from '@/lib/auth-context';
+import { supabase } from '@/lib/supabase';
 import { Eye, EyeOff, LogIn, UserPlus } from 'lucide-react';
 
 type AuthMode = 'login' | 'signup';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { signIn, signUp, loading: authLoading } = useAuth();
+  const { signIn, signUp, loading: authLoading, checkPositionAvailability } = useAuth();
 
   const [mode, setMode] = useState<AuthMode>('login');
   const [email, setEmail] = useState('');
@@ -20,6 +21,32 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
+  const [takenPositions, setTakenPositions] = useState<string[]>([]);
+
+  // Fetch taken officer positions on mount
+  useEffect(() => {
+    const fetchTakenPositions = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('role')
+          .in('role', ['treasurer', 'president', 'vice_president', 'secretary']);
+
+        if (error) {
+          console.error('Error fetching taken positions:', error);
+          return;
+        }
+
+        if (data) {
+          setTakenPositions(data.map(p => p.role));
+        }
+      } catch (err) {
+        console.error('Error fetching taken positions:', err);
+      }
+    };
+
+    fetchTakenPositions();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,16 +63,41 @@ export default function LoginPage() {
           router.push('/');
         }
       } else {
+        // Signup mode
         if (!fullName.trim()) {
           setError('Please enter your full name');
           setLoading(false);
           return;
         }
+
+        // Check if officer position is available before attempting signup
+        if (role !== 'member') {
+          try {
+            const { available, takenBy } = await checkPositionAvailability(role);
+            if (!available) {
+              const roleLabel = roleOptions.find(r => r.value === role)?.label || role;
+              setError(`The ${roleLabel} position is already held${takenBy ? ` by ${takenBy}` : ''}. Please select a different role.`);
+              setLoading(false);
+              return;
+            }
+          } catch (err) {
+            setError('Unable to verify role availability. Please try again.');
+            setLoading(false);
+            return;
+          }
+        }
+
         const { error } = await signUp(email, password, fullName, role);
         if (error) {
-          setError(error.message);
+          // Handle database constraint violation errors
+          if (error.message.includes('unique') || error.message.includes('duplicate')) {
+            const roleLabel = roleOptions.find(r => r.value === role)?.label || role;
+            setError(`The ${roleLabel} position was just taken by another user. Please select a different role.`);
+          } else {
+            setError(error.message);
+          }
         } else {
-          setSuccess('Account created! Please check your email to verify your account.');
+          setSuccess('Account created! Please check your email to confirm your account.');
           setMode('login');
         }
       }
@@ -185,11 +237,19 @@ export default function LoginPage() {
                   onChange={(e) => setRole(e.target.value as UserRole)}
                   className="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-slate-900 focus:border-rose-500 focus:outline-none focus:ring-2 focus:ring-rose-500/20"
                 >
-                  {roleOptions.map(opt => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label} - {opt.description}
-                    </option>
-                  ))}
+                  {roleOptions.map(opt => {
+                    const isTaken = takenPositions.includes(opt.value);
+                    return (
+                      <option
+                        key={opt.value}
+                        value={opt.value}
+                        disabled={isTaken}
+                        className={isTaken ? 'text-gray-400' : ''}
+                      >
+                        {opt.label}{isTaken ? ' (Position Taken)' : ''} - {opt.description}
+                      </option>
+                    );
+                  })}
                 </select>
                 <p className="text-xs text-slate-500 mt-1">
                   Select your chapter position. This determines your access level.
