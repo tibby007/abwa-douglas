@@ -76,8 +76,47 @@ export function MonthlyReport({ transactions, monthLabel, balance, onClose }: Mo
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-auto bg-black/50 print:bg-white print:static">
-      <div className="min-h-screen bg-white p-8 max-w-4xl mx-auto print:p-0 print:max-w-none">
+    <>
+      {/* Print-specific styles */}
+      <style jsx global>{`
+        @media print {
+          @page {
+            size: letter;
+            margin: 0.75in;
+          }
+          body {
+            print-color-adjust: exact;
+            -webkit-print-color-adjust: exact;
+          }
+          /* Prevent page breaks inside category sections */
+          .category-section {
+            break-inside: avoid;
+            page-break-inside: avoid;
+          }
+          /* Allow page breaks before category sections if needed */
+          .category-section {
+            break-before: auto;
+            page-break-before: auto;
+          }
+          /* Prevent page breaks inside transaction rows */
+          table tr {
+            break-inside: avoid;
+            page-break-inside: avoid;
+          }
+          /* Keep summary box together */
+          .summary-box {
+            break-inside: avoid;
+            page-break-inside: avoid;
+          }
+          /* Keep payment source sections together */
+          .payment-source-box {
+            break-inside: avoid;
+            page-break-inside: avoid;
+          }
+        }
+      `}</style>
+      <div className="fixed inset-0 z-50 overflow-auto bg-black/50 print:bg-white print:static">
+        <div className="min-h-screen bg-white p-8 max-w-4xl mx-auto print:p-0 print:max-w-none">
         {/* Print/Close buttons - hidden when printing */}
         <div className="flex justify-end gap-2 mb-6 print:hidden">
           <button
@@ -103,7 +142,7 @@ export function MonthlyReport({ transactions, monthLabel, balance, onClose }: Mo
         </div>
 
         {/* Summary Box */}
-        <div className="bg-slate-50 border border-slate-200 rounded-lg p-6 mb-8">
+        <div className="summary-box bg-slate-50 border border-slate-200 rounded-lg p-6 mb-8">
           <h3 className="text-lg font-semibold text-slate-900 mb-4">Summary</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
@@ -141,7 +180,7 @@ export function MonthlyReport({ transactions, monthLabel, balance, onClose }: Mo
 
           {/* Income by Source */}
           {incomeBySource.length > 0 && (
-            <div className="mb-4 bg-emerald-50 p-4 rounded-lg">
+            <div className="payment-source-box mb-4 bg-emerald-50 p-4 rounded-lg">
               <h4 className="text-sm font-semibold text-emerald-700 mb-2">By Payment Source</h4>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                 {incomeBySource.map(([source, amount]) => (
@@ -156,7 +195,7 @@ export function MonthlyReport({ transactions, monthLabel, balance, onClose }: Mo
 
           {/* Income by Category */}
           {incomeByCategory.map(([category, data]) => (
-            <div key={category} className="mb-4">
+            <div key={category} className="category-section mb-4">
               <div className="flex justify-between items-center bg-slate-100 px-3 py-2 rounded">
                 <span className="font-medium text-slate-700">{category}</span>
                 <span className="font-bold text-emerald-600">{formatCurrency(data.total)}</span>
@@ -189,7 +228,7 @@ export function MonthlyReport({ transactions, monthLabel, balance, onClose }: Mo
 
           {/* Expenses by Source */}
           {expensesBySource.length > 0 && (
-            <div className="mb-4 bg-rose-50 p-4 rounded-lg">
+            <div className="payment-source-box mb-4 bg-rose-50 p-4 rounded-lg">
               <h4 className="text-sm font-semibold text-rose-700 mb-2">By Payment Method</h4>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                 {expensesBySource.map(([source, amount]) => (
@@ -204,7 +243,7 @@ export function MonthlyReport({ transactions, monthLabel, balance, onClose }: Mo
 
           {/* Expenses by Category */}
           {expensesByCategory.map(([category, data]) => (
-            <div key={category} className="mb-4">
+            <div key={category} className="category-section mb-4">
               <div className="flex justify-between items-center bg-slate-100 px-3 py-2 rounded">
                 <span className="font-medium text-slate-700">{category}</span>
                 <span className="font-bold text-rose-600">{formatCurrency(data.total)}</span>
@@ -236,5 +275,6 @@ export function MonthlyReport({ transactions, monthLabel, balance, onClose }: Mo
         </div>
       </div>
     </div>
+    </>
   );
 }
