@@ -11,6 +11,8 @@ interface DashboardProps {
   onUpdateBalance: (newBalance: number) => void;
   onProcess: (id: string, status: TransactionStatus) => void;
   onNavigate: (view: ViewState) => void;
+  isTreasurer: boolean;
+  userName?: string;
 }
 
 const COLORS = ['#be123c', '#fbbf24', '#334155', '#94a3b8', '#475569'];
@@ -37,7 +39,7 @@ function getMonthOptions(transactions: Transaction[]): { value: string; label: s
   return [{ value: 'all', label: 'All Time' }, ...options];
 }
 
-export function Dashboard({ transactions, balance, onUpdateBalance, onProcess, onNavigate }: DashboardProps) {
+export function Dashboard({ transactions, balance, onUpdateBalance, onProcess, onNavigate, isTreasurer, userName }: DashboardProps) {
   const [isEditingBalance, setIsEditingBalance] = useState(false);
   const [tempBalance, setTempBalance] = useState(balance.toString());
   const [selectedMonth, setSelectedMonth] = useState('all');
@@ -106,7 +108,7 @@ export function Dashboard({ transactions, balance, onUpdateBalance, onProcess, o
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h2 className="text-2xl font-bold text-slate-900">Financial Overview</h2>
-          <p className="text-slate-500">Welcome back, Treasurer.</p>
+          <p className="text-slate-500">Welcome back{userName ? `, ${userName}` : ''}.</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
@@ -125,7 +127,7 @@ export function Dashboard({ transactions, balance, onUpdateBalance, onProcess, o
             onClick={() => onNavigate('request')}
             className="inline-flex items-center justify-center rounded-lg bg-rose-700 px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-rose-800 focus:outline-none focus:ring-4 focus:ring-rose-300"
           >
-            + Record Transaction
+            {isTreasurer ? '+ Record Transaction' : '+ Submit Request'}
           </button>
         </div>
       </div>
@@ -148,14 +150,16 @@ export function Dashboard({ transactions, balance, onUpdateBalance, onProcess, o
             <div className="flex-1">
               <div className="flex items-center justify-between">
                 <p className="text-sm font-medium text-slate-500">Current Posted Balance</p>
-                {!isEditingBalance ? (
-                  <button onClick={() => setIsEditingBalance(true)} className="text-slate-400 hover:text-slate-600">
-                    <Edit2 size={14} />
-                  </button>
-                ) : (
-                  <button onClick={saveBalance} className="text-emerald-600 hover:text-emerald-700">
-                    <Check size={16} />
-                  </button>
+                {isTreasurer && (
+                  !isEditingBalance ? (
+                    <button onClick={() => setIsEditingBalance(true)} className="text-slate-400 hover:text-slate-600">
+                      <Edit2 size={14} />
+                    </button>
+                  ) : (
+                    <button onClick={saveBalance} className="text-emerald-600 hover:text-emerald-700">
+                      <Check size={16} />
+                    </button>
+                  )
                 )}
               </div>
 
@@ -281,22 +285,24 @@ export function Dashboard({ transactions, balance, onUpdateBalance, onProcess, o
                       </div>
                       <div className="text-right">
                         <p className="text-lg font-bold text-slate-900">{formatCurrency(tx.amount)}</p>
-                        <div className="mt-2 flex justify-end gap-2">
-                          <button
-                            onClick={() => onProcess(tx.id, TransactionStatus.REJECTED)}
-                            className="rounded p-1.5 text-red-600 hover:bg-red-100"
-                            title="Void Transaction"
-                          >
-                            <XCircle size={20} />
-                          </button>
-                          <button
-                            onClick={() => onProcess(tx.id, TransactionStatus.APPROVED)}
-                            className="rounded p-1.5 text-emerald-600 hover:bg-emerald-100"
-                            title="Mark as Cleared"
-                          >
-                            <CheckCircle size={20} />
-                          </button>
-                        </div>
+                        {isTreasurer && (
+                          <div className="mt-2 flex justify-end gap-2">
+                            <button
+                              onClick={() => onProcess(tx.id, TransactionStatus.REJECTED)}
+                              className="rounded p-1.5 text-red-600 hover:bg-red-100"
+                              title="Void Transaction"
+                            >
+                              <XCircle size={20} />
+                            </button>
+                            <button
+                              onClick={() => onProcess(tx.id, TransactionStatus.APPROVED)}
+                              className="rounded p-1.5 text-emerald-600 hover:bg-emerald-100"
+                              title="Mark as Cleared"
+                            >
+                              <CheckCircle size={20} />
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

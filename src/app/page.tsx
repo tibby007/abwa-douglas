@@ -1,9 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Menu } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Menu, LogOut } from 'lucide-react';
 import { Sidebar, Dashboard, RequestForm, TransactionHistory } from '@/components';
 import { Transaction, TransactionStatus, ViewState } from '@/types';
+import { useAuth } from '@/lib/auth-context';
 
 const STORAGE_KEY = 'abwa-douglas-data';
 
@@ -122,11 +124,21 @@ const INITIAL_DATA: Transaction[] = [
 ];
 
 export default function Home() {
+  const router = useRouter();
+  const { user, profile, loading: authLoading, signOut, isTreasurer, isOfficer } = useAuth();
+
   const [currentView, setCurrentView] = useState<ViewState>('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [balance, setBalance] = useState<number>(1174.95);
   const [transactions, setTransactions] = useState<Transaction[]>(INITIAL_DATA);
   const [isLoaded, setIsLoaded] = useState(false);
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/login');
+    }
+  }, [user, authLoading, router]);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -196,6 +208,33 @@ export default function Home() {
     setIsMobileMenuOpen(false);
   };
 
+  const handleSignOut = async () => {
+    await signOut();
+    router.push('/login');
+  };
+
+  // Show loading while checking auth
+  if (authLoading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-slate-50">
+        <div className="text-center">
+          <div className="inline-flex h-16 w-16 items-center justify-center rounded-xl bg-rose-900 p-2 mb-4">
+            <div className="flex h-full w-full flex-col items-center justify-center rounded bg-white">
+              <span className="text-lg font-black tracking-tighter text-rose-800 leading-none">ABWA</span>
+            </div>
+          </div>
+          <div className="animate-spin h-8 w-8 border-4 border-rose-200 border-t-rose-700 rounded-full mx-auto"></div>
+          <p className="mt-4 text-slate-500">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render if not authenticated (will redirect)
+  if (!user) {
+    return null;
+  }
+
   return (
     <div className="flex h-screen w-full bg-slate-50 text-slate-900">
       {/* Mobile Header */}
@@ -213,6 +252,9 @@ export default function Home() {
              currentView={currentView}
              onChangeView={handleViewChange}
              pendingCount={pendingCount}
+             profile={profile}
+             isTreasurer={isTreasurer}
+             onSignOut={handleSignOut}
            />
         </div>
       </div>
@@ -227,6 +269,8 @@ export default function Home() {
               onUpdateBalance={setBalance}
               onProcess={handleProcessTransaction}
               onNavigate={handleViewChange}
+              isTreasurer={isTreasurer}
+              userName={profile?.full_name?.split(' ')[0]}
             />
           )}
 
@@ -234,10 +278,12 @@ export default function Home() {
             <RequestForm
               onSubmit={handleNewTransaction}
               onCancel={() => handleViewChange('dashboard')}
+              userName={profile?.full_name || profile?.email || 'Unknown'}
+              isTreasurer={isTreasurer}
             />
           )}
 
-          {currentView === 'history' && (
+          {currentView === 'history' && isTreasurer && (
             <TransactionHistory
               transactions={transactions}
               balance={balance}

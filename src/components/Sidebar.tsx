@@ -1,21 +1,33 @@
 'use client';
 
-import { LayoutDashboard, PlusCircle, History } from 'lucide-react';
+import { LayoutDashboard, PlusCircle, History, LogOut } from 'lucide-react';
 import { ViewState } from '@/types';
+import { UserProfile } from '@/lib/auth-context';
 
 interface SidebarProps {
   currentView: ViewState;
   onChangeView: (view: ViewState) => void;
   pendingCount: number;
+  profile: UserProfile | null;
+  isTreasurer: boolean;
+  onSignOut: () => void;
 }
 
-export function Sidebar({ currentView, onChangeView, pendingCount }: SidebarProps) {
+export function Sidebar({ currentView, onChangeView, pendingCount, profile, isTreasurer, onSignOut }: SidebarProps) {
   const navItemClass = (view: ViewState) => `
     flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors
     ${currentView === view
       ? 'bg-rose-800 text-white shadow-inner border-l-4 border-amber-400'
       : 'text-rose-100 hover:bg-rose-800/50 hover:text-white'}
   `;
+
+  const roleLabels: Record<string, string> = {
+    treasurer: 'Treasurer',
+    president: 'President',
+    vice_president: 'Vice President',
+    secretary: 'Secretary',
+    member: 'Member',
+  };
 
   return (
     <div className="flex h-full flex-col p-6">
@@ -54,18 +66,32 @@ export function Sidebar({ currentView, onChangeView, pendingCount }: SidebarProp
           <span>Record Transaction</span>
         </button>
 
-        <button
-          onClick={() => onChangeView('history')}
-          className={navItemClass('history')}
-        >
-          <History size={20} />
-          <span>History & Import</span>
-        </button>
+        {/* History & Import - Treasurer only */}
+        {isTreasurer && (
+          <button
+            onClick={() => onChangeView('history')}
+            className={navItemClass('history')}
+          >
+            <History size={20} />
+            <span>History & Import</span>
+          </button>
+        )}
       </nav>
 
       <div className="rounded-xl bg-rose-950 p-4">
-        <h3 className="mb-1 font-semibold text-white">Treasurer Access</h3>
-        <p className="text-xs text-rose-300">Logged in as Admin</p>
+        <h3 className="mb-1 font-semibold text-white">
+          {roleLabels[profile?.role || 'member']} Access
+        </h3>
+        <p className="text-xs text-rose-300 truncate" title={profile?.email}>
+          {profile?.full_name || profile?.email || 'Loading...'}
+        </p>
+        <button
+          onClick={onSignOut}
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-rose-800/50 px-3 py-2 text-xs font-medium text-rose-100 hover:bg-rose-800 transition-colors"
+        >
+          <LogOut size={14} />
+          Sign Out
+        </button>
       </div>
     </div>
   );
