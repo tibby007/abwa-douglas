@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Transaction, TransactionStatus, ViewState } from '@/types';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-import { CheckCircle, XCircle, TrendingUp, TrendingDown, DollarSign, Edit2, Check } from 'lucide-react';
+import { CheckCircle, XCircle, TrendingUp, TrendingDown, DollarSign, Edit2, Check, Calendar } from 'lucide-react';
 
 interface DashboardProps {
   transactions: Transaction[];
@@ -15,21 +15,56 @@ interface DashboardProps {
 
 const COLORS = ['#be123c', '#fbbf24', '#334155', '#94a3b8', '#475569'];
 
+// Generate month options from transactions
+function getMonthOptions(transactions: Transaction[]): { value: string; label: string }[] {
+  const months = new Set<string>();
+  transactions.forEach(tx => {
+    const date = new Date(tx.date);
+    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    months.add(monthKey);
+  });
+
+  const sortedMonths = Array.from(months).sort().reverse();
+  const options = sortedMonths.map(m => {
+    const [year, month] = m.split('-');
+    const date = new Date(parseInt(year), parseInt(month) - 1);
+    return {
+      value: m,
+      label: date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+    };
+  });
+
+  return [{ value: 'all', label: 'All Time' }, ...options];
+}
+
 export function Dashboard({ transactions, balance, onUpdateBalance, onProcess, onNavigate }: DashboardProps) {
   const [isEditingBalance, setIsEditingBalance] = useState(false);
   const [tempBalance, setTempBalance] = useState(balance.toString());
+  const [selectedMonth, setSelectedMonth] = useState('all');
 
   useEffect(() => {
     setTempBalance(balance.toString());
   }, [balance]);
 
-  const pendingTransactions = transactions.filter(t => t.status === TransactionStatus.PENDING);
+  const monthOptions = useMemo(() => getMonthOptions(transactions), [transactions]);
 
-  const totalIncome = transactions
+  // Filter transactions by selected month
+  const filteredTransactions = useMemo(() => {
+    if (selectedMonth === 'all') return transactions;
+    return transactions.filter(tx => {
+      const date = new Date(tx.date);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      return monthKey === selectedMonth;
+    });
+  }, [transactions, selectedMonth]);
+
+  const pendingTransactions = filteredTransactions.filter(t => t.status === TransactionStatus.PENDING);
+
+  const totalIncome = filteredTransactions
     .filter(t => t.type === 'INCOME' && t.status === TransactionStatus.APPROVED)
     .reduce((sum, t) => sum + t.amount, 0);
 
-  const totalExpenses = transactions
+  const totalExpenses = filteredTransactions
     .filter(t => (t.type === 'EXPENSE' || t.type === 'REIMBURSEMENT') && t.status === TransactionStatus.APPROVED)
     .reduce((sum, t) => sum + t.amount, 0);
 
@@ -39,7 +74,7 @@ export function Dashboard({ transactions, balance, onUpdateBalance, onProcess, o
 
   const availableBalance = balance - pendingDebits;
 
-  const expensesByCategory = transactions
+  const expensesByCategory = filteredTransactions
     .filter(t => (t.type === 'EXPENSE' || t.type === 'REIMBURSEMENT') && t.status === TransactionStatus.APPROVED)
     .reduce((acc, curr) => {
       acc[curr.category] = (acc[curr.category] || 0) + curr.amount;
@@ -63,6 +98,9 @@ export function Dashboard({ transactions, balance, onUpdateBalance, onProcess, o
     setIsEditingBalance(false);
   };
 
+  // Get selected month label for display
+  const selectedMonthLabel = monthOptions.find(m => m.value === selectedMonth)?.label || 'All Time';
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -70,13 +108,34 @@ export function Dashboard({ transactions, balance, onUpdateBalance, onProcess, o
           <h2 className="text-2xl font-bold text-slate-900">Financial Overview</h2>
           <p className="text-slate-500">Welcome back, Treasurer.</p>
         </div>
-        <button
-          onClick={() => onNavigate('request')}
-          className="inline-flex items-center justify-center rounded-lg bg-rose-700 px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-rose-800 focus:outline-none focus:ring-4 focus:ring-rose-300"
-        >
-          + Submit Transaction
-        </button>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Calendar size={16} className="text-slate-400" />
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500"
+            >
+              {monthOptions.map(option => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+          </div>
+          <button
+            onClick={() => onNavigate('request')}
+            className="inline-flex items-center justify-center rounded-lg bg-rose-700 px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-rose-800 focus:outline-none focus:ring-4 focus:ring-rose-300"
+          >
+            + Submit Transaction
+          </button>
+        </div>
       </div>
+
+      {/* Month indicator banner */}
+      {selectedMonth !== 'all' && (
+        <div className="rounded-lg bg-rose-50 border border-rose-200 p-3 text-sm text-rose-800">
+          <strong>Viewing:</strong> {selectedMonthLabel} — Income, expenses, and chart below are filtered to this period.
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid gap-4 sm:grid-cols-3">
@@ -129,7 +188,9 @@ export function Dashboard({ transactions, balance, onUpdateBalance, onProcess, o
               <TrendingUp size={24} />
             </div>
             <div>
-              <p className="text-sm font-medium text-slate-500">Recorded Income</p>
+              <p className="text-sm font-medium text-slate-500">
+                {selectedMonth === 'all' ? 'Total Income' : `${selectedMonthLabel} Income`}
+              </p>
               <h3 className="text-2xl font-bold text-slate-900">{formatCurrency(totalIncome)}</h3>
             </div>
           </div>
@@ -140,12 +201,41 @@ export function Dashboard({ transactions, balance, onUpdateBalance, onProcess, o
               <TrendingDown size={24} />
             </div>
             <div>
-              <p className="text-sm font-medium text-slate-500">Recorded Expenses</p>
+              <p className="text-sm font-medium text-slate-500">
+                {selectedMonth === 'all' ? 'Total Expenses' : `${selectedMonthLabel} Expenses`}
+              </p>
               <h3 className="text-2xl font-bold text-slate-900">{formatCurrency(totalExpenses)}</h3>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Monthly Summary Card - only show when month is selected */}
+      {selectedMonth !== 'all' && (
+        <div className="rounded-xl border-2 border-rose-200 bg-white p-6 shadow-sm">
+          <h3 className="font-semibold text-slate-900 mb-4">{selectedMonthLabel} Summary</h3>
+          <div className="grid gap-4 sm:grid-cols-4">
+            <div>
+              <p className="text-xs text-slate-500 uppercase tracking-wide">Transactions</p>
+              <p className="text-xl font-bold text-slate-900">{filteredTransactions.length}</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-500 uppercase tracking-wide">Total Income</p>
+              <p className="text-xl font-bold text-emerald-600">{formatCurrency(totalIncome)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-500 uppercase tracking-wide">Total Expenses</p>
+              <p className="text-xl font-bold text-rose-600">{formatCurrency(totalExpenses)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-500 uppercase tracking-wide">Net</p>
+              <p className={`text-xl font-bold ${totalIncome - totalExpenses >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                {formatCurrency(totalIncome - totalExpenses)}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Pending Approvals */}
@@ -217,7 +307,9 @@ export function Dashboard({ transactions, balance, onUpdateBalance, onProcess, o
 
         {/* Charts */}
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 className="mb-4 font-semibold text-slate-900">Expenses by Category</h3>
+          <h3 className="mb-4 font-semibold text-slate-900">
+            {selectedMonth === 'all' ? 'Expenses by Category' : `${selectedMonthLabel} Expenses`}
+          </h3>
           <div className="h-64 w-full">
             {pieData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
@@ -241,7 +333,7 @@ export function Dashboard({ transactions, balance, onUpdateBalance, onProcess, o
               </ResponsiveContainer>
             ) : (
               <div className="flex h-full items-center justify-center text-slate-400">
-                <p>Not enough data to display chart</p>
+                <p>No expense data for this period</p>
               </div>
             )}
           </div>
