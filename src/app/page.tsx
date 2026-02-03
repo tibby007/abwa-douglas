@@ -1,9 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Menu } from 'lucide-react';
 import { Sidebar, Dashboard, RequestForm, TransactionHistory } from '@/components';
 import { Transaction, TransactionStatus, ViewState } from '@/types';
+
+const STORAGE_KEY = 'abwa-douglas-data';
 
 // Initial Mock Data based on User CSV (Nov 7 - Dec 9, 2025)
 const INITIAL_DATA: Transaction[] = [
@@ -124,6 +126,29 @@ export default function Home() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [balance, setBalance] = useState<number>(1174.95);
   const [transactions, setTransactions] = useState<Transaction[]>(INITIAL_DATA);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // Load from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        const data = JSON.parse(saved);
+        if (data.transactions) setTransactions(data.transactions);
+        if (typeof data.balance === 'number') setBalance(data.balance);
+      } catch (e) {
+        console.error('Failed to load saved data:', e);
+      }
+    }
+    setIsLoaded(true);
+  }, []);
+
+  // Save to localStorage whenever data changes
+  useEffect(() => {
+    if (isLoaded) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ transactions, balance }));
+    }
+  }, [transactions, balance, isLoaded]);
 
   const pendingCount = transactions.filter(t => t.status === TransactionStatus.PENDING).length;
 
