@@ -12,41 +12,67 @@ body {
 @media print {
   @page {
     size: letter;
-    margin: 0.75in;
+    margin: 0.5in;
   }
 
   body {
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
+    overflow: visible !important;
   }
 
-  /* Prevent page breaks inside category sections */
-  .category-section {
-    break-inside: avoid;
-    page-break-inside: avoid;
+  /* Ensure content flows properly */
+  * {
+    overflow: visible !important;
+    max-height: none !important;
   }
 
-  /* Allow page breaks before category sections if needed */
-  .category-section {
-    break-before: auto;
-    page-break-before: auto;
+  /* Remove any height restrictions on print */
+  .fixed, .absolute, [style*="height"] {
+    position: static !important;
+    height: auto !important;
+    max-height: none !important;
   }
 
-  /* Prevent page breaks inside transaction rows */
+  /* Prevent page breaks inside individual transaction rows */
   table tr {
-    break-inside: avoid;
     page-break-inside: avoid;
+    break-inside: avoid;
   }
 
-  /* Keep summary box together */
-  .summary-box {
-    break-inside: avoid;
-    page-break-inside: avoid;
-  }
-
-  /* Keep payment source sections together */
+  /* Try to keep small sections together */
   .payment-source-box {
-    break-inside: avoid;
     page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .summary-box {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Allow page breaks in category sections if needed */
+  .category-section {
+    page-break-inside: auto;
+    break-inside: auto;
+  }
+
+  /* Prefer to break before headings rather than after */
+  h1, h2, h3, h4 {
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+
+  /* Ensure tables can span pages */
+  table {
+    page-break-inside: auto;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tbody {
+    display: table-row-group;
   }
 }
