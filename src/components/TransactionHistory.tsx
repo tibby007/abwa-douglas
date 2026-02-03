@@ -286,7 +286,7 @@ export function TransactionHistory({ transactions, balance, onImport, onUpdateBa
 
   return (
     <div className="space-y-6">
-      {showReport && selectedMonth !== 'all' && (
+      {showReport && (
         <MonthlyReport
           transactions={filteredTransactions}
           monthLabel={selectedMonthLabel}
@@ -310,12 +310,10 @@ export function TransactionHistory({ transactions, balance, onImport, onUpdateBa
             <Download size={16} />
             <span>Export CSV</span>
           </button>
-          {selectedMonth !== 'all' && (
-            <button onClick={() => setShowReport(true)} className="flex items-center gap-2 rounded-lg bg-rose-700 px-4 py-2 text-sm font-medium text-white hover:bg-rose-800">
-              <FileText size={16} />
-              <span>Print Report</span>
-            </button>
-          )}
+          <button onClick={() => setShowReport(true)} className="flex items-center gap-2 rounded-lg bg-rose-700 px-4 py-2 text-sm font-medium text-white hover:bg-rose-800">
+            <FileText size={16} />
+            <span>Print Report</span>
+          </button>
         </div>
       </div>
 
