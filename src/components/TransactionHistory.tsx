@@ -224,7 +224,7 @@ export function TransactionHistory({ transactions, onImport, onUpdateBalance }: 
               className="flex items-center gap-2 rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
             >
             <UploadCloud size={16} />
-            <span>Import Bank Statement</span>
+            <span>Import CSV</span>
           </button>
           <button
             onClick={handleExport}
@@ -244,7 +244,7 @@ export function TransactionHistory({ transactions, onImport, onUpdateBalance }: 
       )}
 
       <div className="rounded-lg bg-blue-50 p-3 text-xs text-blue-700 border border-blue-100">
-        <strong>Bank Import Ready:</strong> Upload your .CSV file to automatically populate transactions and update the dashboard balance.
+        <strong>CSV Import:</strong> Upload your bank's .CSV export to automatically populate transactions and update the dashboard balance.
       </div>
 
       <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
