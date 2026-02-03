@@ -1,0 +1,171 @@
+'use client';
+
+import { useState } from 'react';
+import { CATEGORIES, Transaction, TransactionStatus, TransactionType } from '@/types';
+import { DollarSign, Calendar, Tag, FileText } from 'lucide-react';
+
+interface RequestFormProps {
+  onSubmit: (transaction: Transaction) => void;
+  onCancel: () => void;
+}
+
+export function RequestForm({ onSubmit, onCancel }: RequestFormProps) {
+  const [formData, setFormData] = useState({
+    amount: '',
+    merchant: '',
+    date: new Date().toISOString().split('T')[0],
+    category: CATEGORIES[0],
+    description: '',
+    type: 'REIMBURSEMENT' as TransactionType,
+    submittedBy: 'President'
+  });
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const newTransaction: Transaction = {
+      id: `tx-${Date.now()}`,
+      amount: parseFloat(formData.amount),
+      merchant: formData.merchant,
+      date: formData.date,
+      category: formData.category,
+      description: formData.description,
+      type: formData.type,
+      status: TransactionStatus.PENDING,
+      submittedBy: formData.submittedBy
+    };
+    onSubmit(newTransaction);
+  };
+
+  return (
+    <div className="mx-auto max-w-2xl">
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-slate-900">New Payment/Request</h2>
+        <p className="text-slate-500">
+            Submit a new transaction for treasurer approval.
+        </p>
+      </div>
+
+      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div className="p-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid gap-6 md:grid-cols-2">
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-slate-700">Transaction Type</label>
+                <select
+                  name="type"
+                  value={formData.type}
+                  onChange={handleInputChange}
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500"
+                >
+                  <option value="REIMBURSEMENT">Reimbursement</option>
+                  <option value="EXPENSE">Direct Payment (Expense)</option>
+                  <option value="INCOME">Deposit (Income)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-slate-700">Date</label>
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-2.5 text-slate-400" size={16} />
+                  <input
+                    type="date"
+                    name="date"
+                    value={formData.date}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full rounded-lg border border-slate-300 pl-9 pr-3 py-2 text-sm focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-slate-700">Amount</label>
+                <div className="relative">
+                  <DollarSign className="absolute left-3 top-2.5 text-slate-400" size={16} />
+                  <input
+                    type="number"
+                    name="amount"
+                    value={formData.amount}
+                    onChange={handleInputChange}
+                    placeholder="0.00"
+                    step="0.01"
+                    min="0"
+                    required
+                    className="w-full rounded-lg border border-slate-300 pl-9 pr-3 py-2 text-sm focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-slate-700">Category</label>
+                <div className="relative">
+                  <Tag className="absolute left-3 top-2.5 text-slate-400" size={16} />
+                  <select
+                    name="category"
+                    value={formData.category}
+                    onChange={handleInputChange}
+                    className="w-full rounded-lg border border-slate-300 pl-9 pr-3 py-2 text-sm focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500"
+                  >
+                    {CATEGORIES.map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">Payee / Merchant</label>
+              <input
+                type="text"
+                name="merchant"
+                value={formData.merchant}
+                onChange={handleInputChange}
+                placeholder="e.g., Staples, Catering Co."
+                required
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">Description / Purpose</label>
+              <div className="relative">
+                <FileText className="absolute left-3 top-3 text-slate-400" size={16} />
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={handleInputChange}
+                  rows={3}
+                  required
+                  className="w-full rounded-lg border border-slate-300 pl-9 pr-3 py-2 text-sm focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500"
+                  placeholder="Brief details about the expense..."
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 border-t border-slate-100 pt-6">
+              <button
+                type="button"
+                onClick={onCancel}
+                className="rounded-lg px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-200"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="inline-flex items-center justify-center rounded-lg bg-rose-700 px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-rose-800 focus:outline-none focus:ring-4 focus:ring-rose-300"
+              >
+                Submit Request
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
