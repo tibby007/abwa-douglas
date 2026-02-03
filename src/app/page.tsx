@@ -176,6 +176,12 @@ export default function Home() {
     setTransactions(prev => [...newTxs, ...prev]);
   };
 
+  const handleClearData = () => {
+    setTransactions([]);
+    setBalance(0);
+    localStorage.removeItem(STORAGE_KEY);
+  };
+
   const handleViewChange = (view: ViewState) => {
     setCurrentView(view);
     setIsMobileMenuOpen(false);
@@ -228,6 +234,7 @@ export default function Home() {
               balance={balance}
               onImport={handleImportTransactions}
               onUpdateBalance={setBalance}
+              onClearData={handleClearData}
             />
           )}
         </div>

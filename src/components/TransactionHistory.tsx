@@ -2,7 +2,7 @@
 
 import { useRef, useState, useMemo } from 'react';
 import { Transaction, TransactionStatus, CATEGORIES, PaymentSource } from '@/types';
-import { Download, Search, UploadCloud, AlertCircle, ArrowUpRight, ArrowDownLeft, Calendar, FileText } from 'lucide-react';
+import { Download, Search, UploadCloud, AlertCircle, ArrowUpRight, ArrowDownLeft, Calendar, FileText, Trash2 } from 'lucide-react';
 import { MonthlyReport } from './MonthlyReport';
 
 interface HistoryProps {
@@ -10,6 +10,7 @@ interface HistoryProps {
   balance: number;
   onImport?: (transactions: Transaction[]) => void;
   onUpdateBalance?: (balance: number) => void;
+  onClearData?: () => void;
 }
 
 function getMonthOptions(transactions: Transaction[]): { value: string; label: string }[] {
@@ -84,7 +85,7 @@ function extractMerchantName(description: string): string {
   return cleanDesc.replace(/^(DEBIT|CREDIT|ACH|PREAUTHORIZED|WD)\s+/i, '').trim() || 'Bank Transaction';
 }
 
-export function TransactionHistory({ transactions, balance, onImport, onUpdateBalance }: HistoryProps) {
+export function TransactionHistory({ transactions, balance, onImport, onUpdateBalance, onClearData }: HistoryProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -212,11 +213,26 @@ export function TransactionHistory({ transactions, balance, onImport, onUpdateBa
         }
 
         if (newTransactions.length > 0 && onImport) {
-          onImport(newTransactions);
-          if (latestBalance !== -1 && onUpdateBalance) onUpdateBalance(latestBalance);
-          setImportError(null);
+          // Check for duplicates - match by date + amount + description
+          const existingKeys = new Set(
+            transactions.map(tx => `${tx.date}|${tx.amount}|${tx.description}`)
+          );
+          const uniqueTransactions = newTransactions.filter(tx => {
+            const key = `${tx.date}|${tx.amount}|${tx.description}`;
+            return !existingKeys.has(key);
+          });
+
+          if (uniqueTransactions.length > 0) {
+            onImport(uniqueTransactions);
+            if (latestBalance !== -1 && onUpdateBalance) onUpdateBalance(latestBalance);
+            setImportError(null);
+            const skipped = newTransactions.length - uniqueTransactions.length;
+            const skippedMsg = skipped > 0 ? ` (${skipped} duplicates skipped)` : '';
+            alert(`Successfully imported ${uniqueTransactions.length} transactions${skippedMsg}.${latestBalance !== -1 ? ' Balance updated.' : ''}`);
+          } else {
+            setImportError("All transactions in this file already exist.");
+          }
           if (fileInputRef.current) fileInputRef.current.value = '';
-          alert('Successfully imported ' + newTransactions.length + ' transactions.' + (latestBalance !== -1 ? ' Balance updated.' : ''));
         } else {
           setImportError("No valid transactions found.");
         }
@@ -314,6 +330,19 @@ export function TransactionHistory({ transactions, balance, onImport, onUpdateBa
             <FileText size={16} />
             <span>Print Report</span>
           </button>
+          {onClearData && (
+            <button
+              onClick={() => {
+                if (confirm('Are you sure you want to clear all transaction data? This cannot be undone.')) {
+                  onClearData();
+                }
+              }}
+              className="flex items-center gap-2 rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
+            >
+              <Trash2 size={16} />
+              <span>Clear Data</span>
+            </button>
+          )}
         </div>
       </div>
 
